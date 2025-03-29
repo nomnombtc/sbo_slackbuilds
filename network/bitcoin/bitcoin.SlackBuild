@@ -25,7 +25,7 @@
 cd $(dirname $0) ; CWD=$(pwd)
 
 PRGNAM=bitcoin
-VERSION=${VERSION:-28.1}
+VERSION=${VERSION:-29.0rc2}
 BUILD=${BUILD:-1}
 TAG=${TAG:-_SBo}
 PKGTYPE=${PKGTYPE:-tgz}
@@ -65,7 +65,7 @@ else
 fi
 
 # Detect qrencode
-if [ -x /usr/bin/qrencode ]; then QRCODE="--with-qrencode"; else QRCODE=""; fi
+if [ -x /usr/bin/qrencode ]; then QRCODE="ON"; else QRCODE="OFF"; fi
 
 set -e
 
@@ -82,24 +82,19 @@ find -L . \
  \( -perm 666 -o -perm 664 -o -perm 640 -o -perm 600 -o -perm 444 \
   -o -perm 440 -o -perm 400 \) -exec chmod 644 {} \;
 
-# build bitcoin-core
-[ -f autogen.sh ] && ./autogen.sh
-CFLAGS="$SLKCFLAGS" \
-CXXFLAGS="$SLKCFLAGS" \
-./configure \
-  --prefix=/usr \
-  --libdir=/usr/lib${LIBDIRSUFFIX} \
-  --sysconfdir=/etc \
-  --mandir=/usr/man \
-  $QRCODE \
-  --with-gui=qt5 \
-  --disable-bench \
-  --disable-tests \
-  --disable-static \
-  --build=$ARCH-slackware-linux
-
-make
-make install DESTDIR=$PKG
+cmake -B build \
+  -DCMAKE_C_FLAGS:STRING="$SLKCFLAGS" \
+  -DCMAKE_CXX_FLAGS:STRING="$SLKCFLAGS" \
+  -DCMAKE_INSTALL_PREFIX=/usr \
+  -DCMAKE_INSTALL_MANDIR=/usr/man \
+  -DLIB_SUFFIX=${LIBDIRSUFFIX} \
+  -DBUILD_GUI=ON \
+  -DBUILD_TESTS=OFF \
+  -DWITH_QRENCODE=$QRCODE \
+  -DWITH_BDB=ON \
+  -DCMAKE_BUILD_TYPE=Release .
+cmake --build build
+DESTDIR="$PKG" cmake --install build
 
 rm -f $PKG/{,usr/}lib${LIBDIRSUFFIX}/*.la
 
